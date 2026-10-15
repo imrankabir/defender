@@ -1,0 +1,961 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description"
+        content="Play Space Defender, a free arcade shooting game.">
+  <title>Space Defender - HTML5 Shooter</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: #101e32;
+      --cyan: #35e5ff;
+      --text: #f0f7ff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at top, #142b4c, var(--bg) 65%);
+      color: var(--text);
+      font-family: system-ui, Arial, sans-serif;
+      text-align: center;
+    }
+
+    header {
+      padding: 16px 10px 8px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--cyan);
+      font-size: clamp(24px, 5vw, 38px);
+      letter-spacing: 2px;
+      text-shadow: 0 0 20px #35e5ff55;
+    }
+
+    header p {
+      margin: 6px 0;
+      color: #afc2d9;
+      font-size: 14px;
+    }
+
+    .game-layout {
+      width: min(960px, 100%);
+      margin: auto;
+      padding: 10px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      padding: 10px 4px;
+      background: #13253b;
+      border: 1px solid #28415d;
+      border-radius: 10px;
+    }
+
+    .stat small {
+      display: block;
+      color: #9db5ce;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 20px;
+    }
+
+    .game-frame {
+      position: relative;
+      overflow: hidden;
+      border: 2px solid #2a5a7d;
+      border-radius: 12px;
+      background: #030915;
+      box-shadow: 0 0 28px #00bfff18;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 3 / 2;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: #030915dc;
+      z-index: 2;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .overlay h2 {
+      color: var(--cyan);
+      font-size: clamp(25px, 5vw, 40px);
+      margin: 0 0 10px;
+    }
+
+    .overlay p {
+      max-width: 420px;
+      line-height: 1.6;
+      color: #d0deef;
+    }
+
+    button {
+      color: white;
+      background: #0879b9;
+      border: 1px solid #35cfff;
+      border-radius: 9px;
+      padding: 11px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:hover {
+      background: #1098d9;
+    }
+
+    button:focus-visible {
+      outline: 3px solid white;
+      outline-offset: 3px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .toolbar button.secondary {
+      background: #26384f;
+      border-color: #526984;
+    }
+
+    .mobile-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.3fr;
+      gap: 9px;
+      max-width: 440px;
+      margin: 12px auto;
+    }
+
+    .mobile-controls button {
+      min-height: 55px;
+      font-size: 20px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .mobile-controls .fire {
+      background: #b72c48;
+      border-color: #ff708a;
+    }
+
+    .instructions {
+      margin: 16px 0;
+      padding: 15px;
+      background: #101e32;
+      border: 1px solid #263e59;
+      border-radius: 10px;
+      text-align: left;
+      line-height: 1.8;
+      color: #c5d4e6;
+      font-size: 14px;
+    }
+
+    .instructions h3 {
+      color: var(--cyan);
+      margin-top: 0;
+    }
+
+    /* Keep ads visually separate from the game controls. */
+    .ad-container {
+      width: 100%;
+      min-height: 90px;
+      margin: 20px auto;
+      padding: 8px;
+      text-align: center;
+      background: #0b1727;
+      border: 1px solid #20344c;
+      border-radius: 8px;
+    }
+
+    .ad-label {
+      display: block;
+      margin-bottom: 8px;
+      color: #8297af;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    footer {
+      padding: 20px 10px;
+      color: #8fa4bc;
+      font-size: 12px;
+    }
+
+    @media (max-width: 480px) {
+      .game-layout {
+        padding: 7px;
+      }
+
+      .stat strong {
+        font-size: 17px;
+      }
+
+      .stat {
+        padding: 8px 2px;
+      }
+    }
+  </style>
+
+  <!-- GOOGLE ADSENSE SETUP:
+       Replace ca-pub-XXXXXXXXXXXXXXXX with your actual publisher ID.
+       Uncomment this script only after obtaining your AdSense ID.
+       Do not use a placeholder as a real publisher ID.
+
+  <script async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+    crossorigin="anonymous"></script>
+  -->
+</head>
+
+<body>
+  <header>
+    <h1>SPACE DEFENDER</h1>
+    <p>Defend your galaxy. Survive. Beat your high score!</p>
+  </header>
+
+  <main class="game-layout">
+    <section class="stats" aria-label="Game statistics">
+      <div class="stat">
+        <small>Score</small>
+        <strong id="score">0</strong>
+      </div>
+      <div class="stat">
+        <small>High Score</small>
+        <strong id="highScore">0</strong>
+      </div>
+      <div class="stat">
+        <small>Lives</small>
+        <strong id="lives">3</strong>
+      </div>
+      <div class="stat">
+        <small>Level</small>
+        <strong id="level">1</strong>
+      </div>
+    </section>
+
+    <section class="game-frame" aria-label="Shooter game">
+      <canvas id="game" width="900" height="600"
+              aria-label="Space Defender game canvas"></canvas>
+
+      <div class="overlay" id="overlay">
+        <h2 id="overlayTitle">READY, PILOT?</h2>
+        <p id="overlayMessage">
+          Destroy enemy ships, dodge incoming attacks, and protect your lives.
+        </p>
+        <button id="startButton">START GAME</button>
+      </div>
+    </section>
+
+    <div class="toolbar">
+      <button id="pauseButton" class="secondary">Pause</button>
+      <button id="soundButton" class="secondary">Sound: On</button>
+      <button id="restartButton" class="secondary">Restart</button>
+    </div>
+
+    <div class="mobile-controls">
+      <button id="leftButton" aria-label="Move left">◀ LEFT</button>
+      <button id="rightButton" aria-label="Move right">RIGHT ▶</button>
+      <button id="fireButton" class="fire">🔥 FIRE</button>
+    </div>
+
+    <!-- AdSense display ad placement.
+         Ads must not be made to look like game buttons or rewards.
+         Keep the ad separate from the interactive game area. -->
+    <div class="ad-container">
+      <span class="ad-label">ADVERTISEMENT</span>
+
+      <!--
+      Replace the publisher ID and slot ID with your real AdSense values.
+
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="1234567890"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+
+      <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+      -->
+
+      <span style="font-size:12px;color:#6e849d">
+        Ad space — configure your AdSense account to display ads.
+      </span>
+    </div>
+
+    <section class="instructions">
+      <h3>How to Play</h3>
+      <ul>
+        <li><b>Move:</b> Left/Right arrow keys or A/D.</li>
+        <li><b>Shoot:</b> Spacebar or the FIRE button.</li>
+        <li><b>Pause:</b> Press P or use the Pause button.</li>
+        <li><b>Mobile:</b> Hold the movement or FIRE buttons.</li>
+        <li><b>Objective:</b> Destroy enemies, avoid collisions, and survive.</li>
+        <li><b>Progress:</b> Your best score is saved on this device.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    Space Defender · HTML5 Canvas · CSS3 · JavaScript
+  </footer>
+
+  <script>
+  (() => {
+    "use strict";
+
+    const canvas = document.querySelector("#game");
+    const ctx = canvas.getContext("2d");
+
+    const $ = id => document.querySelector(`#${id}`);
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const ui = {
+      score: $("score"),
+      highScore: $("highScore"),
+      lives: $("lives"),
+      level: $("level"),
+      overlay: $("overlay"),
+      title: $("overlayTitle"),
+      message: $("overlayMessage"),
+      start: $("startButton"),
+      pause: $("pauseButton"),
+      sound: $("soundButton"),
+      restart: $("restartButton")
+    };
+
+    const keys = new Set();
+    const pointer = { left: false, right: false, fire: false };
+
+    let player;
+    let bullets = [];
+    let enemies = [];
+    let enemyBullets = [];
+    let particles = [];
+    let stars = [];
+
+    let score = 0;
+    let lives = 3;
+    let level = 1;
+    let highScore = 0;
+    let enemyTimer = 0;
+    let shotTimer = 0;
+    let lastTime = 0;
+    let elapsed = 0;
+    let running = false;
+    let gameOver = false;
+    let soundOn = true;
+    let audioContext = null;
+    let animationId = 0;
+
+    try {
+      highScore = Number(localStorage.getItem("spaceDefenderHighScore")) || 0;
+    } catch (_) {
+      highScore = 0;
+    }
+
+    ui.highScore.textContent = highScore;
+
+    function random(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function resetGame() {
+      score = 0;
+      lives = 3;
+      level = 1;
+      enemyTimer = 0;
+      shotTimer = 0;
+      elapsed = 0;
+
+      bullets = [];
+      enemies = [];
+      enemyBullets = [];
+      particles = [];
+
+      player = {
+        x: W / 2,
+        y: H - 65,
+        width: 38,
+        height: 38,
+        speed: 340,
+        invulnerable: 0
+      };
+
+      stars = Array.from({ length: 100 }, () => ({
+        x: random(0, W),
+        y: random(0, H),
+        size: random(1, 3),
+        speed: random(15, 85)
+      }));
+
+      updateUI();
+    }
+
+    function updateUI() {
+      ui.score.textContent = score;
+      ui.highScore.textContent = highScore;
+      ui.lives.textContent = lives;
+      ui.level.textContent = level;
+    }
+
+    function saveHighScore() {
+      if (score > highScore) {
+        highScore = score;
+        try {
+          localStorage.setItem("spaceDefenderHighScore", String(highScore));
+        } catch (_) {
+          // The game still works if browser storage is unavailable.
+        }
+      }
+      updateUI();
+    }
+
+    function showOverlay(title, message, buttonText) {
+      ui.title.textContent = title;
+      ui.message.textContent = message;
+      ui.start.textContent = buttonText;
+      ui.overlay.classList.remove("hidden");
+    }
+
+    function hideOverlay() {
+      ui.overlay.classList.add("hidden");
+    }
+
+    function startGame() {
+      if (gameOver) resetGame();
+
+      running = true;
+      gameOver = false;
+      lastTime = performance.now();
+      hideOverlay();
+
+      if (!animationId) {
+        animationId = requestAnimationFrame(loop);
+      }
+    }
+
+    function endGame() {
+      running = false;
+      gameOver = true;
+      saveHighScore();
+
+      showOverlay(
+        "GAME OVER",
+        `Your score: ${score}. Best score: ${highScore}. Try again!`,
+        "PLAY AGAIN"
+      );
+    }
+
+    function togglePause() {
+      if (gameOver) return;
+
+      if (running) {
+        running = false;
+        showOverlay("PAUSED", "Take a breath, pilot.", "RESUME");
+      } else {
+        startGame();
+      }
+    }
+
+    function beep(frequency = 440, duration = 0.06, type = "square") {
+      if (!soundOn) return;
+
+      try {
+        audioContext ||= new (window.AudioContext ||
+                              window.webkitAudioContext)();
+
+        if (audioContext.state === "suspended") {
+          audioContext.resume();
+        }
+
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.045, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(
+          0.001, audioContext.currentTime + duration
+        );
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + duration);
+      } catch (_) {
+        // Audio is optional.
+      }
+    }
+
+    function shoot() {
+      if (shotTimer > 0) return;
+
+      bullets.push({
+        x: player.x,
+        y: player.y - 22,
+        width: 5,
+        height: 16,
+        speed: 550
+      });
+
+      shotTimer = 0.17;
+      beep(620, 0.045);
+    }
+
+    function spawnEnemy() {
+      const strong = level >= 3 && Math.random() < 0.24;
+
+      enemies.push({
+        x: random(30, W - 30),
+        y: -30,
+        width: strong ? 38 : 30,
+        height: strong ? 38 : 30,
+        hp: strong ? 3 : 1,
+        speed: random(65, 115) + level * 9,
+        drift: random(-45, 45),
+        fireTimer: random(0.8, 2.8),
+        points: strong ? 30 : 10,
+        color: strong ? "#ffb547" : "#ff4668"
+      });
+    }
+
+    function explode(x, y, color, amount = 12) {
+      for (let i = 0; i < amount; i++) {
+        const angle = random(0, Math.PI * 2);
+        const speed = random(45, 190);
+
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: random(0.2, 0.55),
+          maxLife: 0.55,
+          size: random(2, 5),
+          color
+        });
+      }
+    }
+
+    function overlaps(a, b) {
+      return a.x - a.width / 2 < b.x + b.width / 2 &&
+             a.x + a.width / 2 > b.x - b.width / 2 &&
+             a.y - a.height / 2 < b.y + b.height / 2 &&
+             a.y + a.height / 2 > b.y - b.height / 2;
+    }
+
+    function damagePlayer() {
+      if (player.invulnerable > 0) return;
+
+      lives--;
+      player.invulnerable = 1.25;
+
+      explode(player.x, player.y, "#35e5ff", 22);
+      beep(140, 0.2, "sawtooth");
+      updateUI();
+
+      if (lives <= 0) endGame();
+    }
+
+    function update(dt) {
+      elapsed += dt;
+
+      stars.forEach(star => {
+        star.y += star.speed * dt;
+        if (star.y > H) {
+          star.y = 0;
+          star.x = random(0, W);
+        }
+      });
+
+      level = Math.floor(score / 150) + 1;
+      shotTimer = Math.max(0, shotTimer - dt);
+      player.invulnerable = Math.max(0, player.invulnerable - dt);
+
+      const left = keys.has("ArrowLeft") || keys.has("a") ||
+                   keys.has("A") || pointer.left;
+      const right = keys.has("ArrowRight") || keys.has("d") ||
+                    keys.has("D") || pointer.right;
+      const fire = keys.has(" ") || pointer.fire;
+
+      if (left) player.x -= player.speed * dt;
+      if (right) player.x += player.speed * dt;
+
+      player.x = clamp(player.x, 22, W - 22);
+
+      if (fire) shoot();
+
+      enemyTimer += dt;
+      const spawnInterval = Math.max(0.32, 1.05 - level * 0.055);
+
+      if (enemyTimer >= spawnInterval) {
+        enemyTimer = 0;
+        spawnEnemy();
+      }
+
+      bullets.forEach(b => {
+        b.y -= b.speed * dt;
+      });
+
+      enemyBullets.forEach(b => {
+        b.y += b.speed * dt;
+      });
+
+      enemies.forEach(enemy => {
+        enemy.y += enemy.speed * dt;
+        enemy.x += enemy.drift * dt;
+
+        if (enemy.x < 20 || enemy.x > W - 20) {
+          enemy.drift *= -1;
+        }
+
+        enemy.fireTimer -= dt;
+
+        if (enemy.fireTimer <= 0 && enemy.y > 0 && enemy.y < H - 100) {
+          enemyBullets.push({
+            x: enemy.x,
+            y: enemy.y + 12,
+            width: 7,
+            height: 13,
+            speed: 180 + level * 8
+          });
+
+          enemy.fireTimer = random(1.1, 2.7);
+        }
+
+        if (enemy.y > H + 25) {
+          enemy.passed = true;
+          damagePlayer();
+        }
+
+        if (overlaps(player, enemy)) {
+          enemy.passed = true;
+          explode(enemy.x, enemy.y, enemy.color);
+          damagePlayer();
+        }
+      });
+
+      // Player projectiles versus enemy ships.
+      bullets.forEach(bullet => {
+        if (bullet.dead) return;
+
+        for (const enemy of enemies) {
+          if (enemy.passed || enemy.dead) continue;
+
+          if (overlaps(bullet, enemy)) {
+            bullet.dead = true;
+            enemy.hp--;
+
+            explode(bullet.x, bullet.y, "#35e5ff", 4);
+
+            if (enemy.hp <= 0) {
+              enemy.dead = true;
+              score += enemy.points;
+              explode(enemy.x, enemy.y, enemy.color, 16);
+              beep(240, 0.07, "triangle");
+            }
+
+            break;
+          }
+        }
+      });
+
+      // Enemy projectiles versus the player.
+      enemyBullets.forEach(bullet => {
+        if (!bullet.dead && overlaps(bullet, player)) {
+          bullet.dead = true;
+          damagePlayer();
+        }
+      });
+
+      particles.forEach(p => {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+      });
+
+      bullets = bullets.filter(b => !b.dead && b.y > -30);
+      enemyBullets = enemyBullets.filter(
+        b => !b.dead && b.y < H + 30
+      );
+      enemies = enemies.filter(e => !e.dead && !e.passed);
+      particles = particles.filter(p => p.life > 0);
+
+      saveHighScore();
+    }
+
+    function drawShip(x, y, color, size = 1) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size, size);
+
+      ctx.beginPath();
+      ctx.moveTo(0, -22);
+      ctx.lineTo(17, 16);
+      ctx.lineTo(0, 9);
+      ctx.lineTo(-17, 16);
+      ctx.closePath();
+
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 15;
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.ellipse(0, -4, 4, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffb547";
+      ctx.beginPath();
+      ctx.moveTo(-6, 15);
+      ctx.lineTo(0, random(22, 32));
+      ctx.lineTo(6, 15);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawEnemy(enemy) {
+      ctx.save();
+      ctx.translate(enemy.x, enemy.y);
+
+      ctx.fillStyle = enemy.color;
+      ctx.shadowColor = enemy.color;
+      ctx.shadowBlur = 12;
+
+      ctx.beginPath();
+      ctx.moveTo(0, 19);
+      ctx.lineTo(-19, -12);
+      ctx.lineTo(-8, -8);
+      ctx.lineTo(0, -2);
+      ctx.lineTo(8, -8);
+      ctx.lineTo(19, -12);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+
+      if (enemy.hp > 1) {
+        ctx.fillStyle = "#fff";
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(enemy.hp, 0, 3);
+      }
+
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, "#050d20");
+      bg.addColorStop(1, "#101d38");
+
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      stars.forEach(star => {
+        ctx.globalAlpha = 0.4 + star.size / 4;
+        ctx.fillStyle = "#c8e8ff";
+        ctx.fillRect(star.x, star.y, star.size, star.size);
+      });
+      ctx.globalAlpha = 1;
+
+      bullets.forEach(b => {
+        ctx.fillStyle = "#35e5ff";
+        ctx.shadowColor = "#35e5ff";
+        ctx.shadowBlur = 12;
+        ctx.fillRect(b.x - 2, b.y - 8, 4, 16);
+      });
+
+      ctx.shadowBlur = 0;
+
+      enemyBullets.forEach(b => {
+        ctx.fillStyle = "#ff9a58";
+        ctx.shadowColor = "#ff563c";
+        ctx.shadowBlur = 10;
+        ctx.fillRect(b.x - 3, b.y - 5, 6, 12);
+      });
+
+      ctx.shadowBlur = 0;
+
+      enemies.forEach(drawEnemy);
+
+      if (player && player.invulnerable <= 0 ||
+          player && Math.floor(elapsed * 12) % 2 === 0) {
+        drawShip(player.x, player.y, "#35e5ff");
+      }
+
+      particles.forEach(p => {
+        ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      });
+
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = "#b4cce7";
+      ctx.font = "14px system-ui";
+      ctx.textAlign = "left";
+      ctx.fillText("LEVEL " + level, 14, 25);
+    }
+
+    function loop(now) {
+      animationId = 0;
+
+      const dt = Math.min((now - lastTime) / 1000 || 0, 0.035);
+      lastTime = now;
+
+      if (running) {
+        update(dt);
+      }
+
+      draw();
+
+      if (running) {
+        animationId = requestAnimationFrame(loop);
+      }
+    }
+
+    function ensureDraw() {
+      if (!animationId) {
+        animationId = requestAnimationFrame(loop);
+      }
+    }
+
+    ui.start.addEventListener("click", startGame);
+    ui.pause.addEventListener("click", togglePause);
+
+    ui.restart.addEventListener("click", () => {
+      running = false;
+      gameOver = false;
+      resetGame();
+      startGame();
+    });
+
+    ui.sound.addEventListener("click", () => {
+      soundOn = !soundOn;
+      ui.sound.textContent = "Sound: " + (soundOn ? "On" : "Off");
+      if (soundOn) beep(500, 0.07);
+    });
+
+    document.addEventListener("keydown", event => {
+      if (["ArrowLeft", "ArrowRight", " ", "ArrowUp", "ArrowDown"]
+          .includes(event.key)) {
+        event.preventDefault();
+      }
+
+      keys.add(event.key);
+
+      if (event.repeat) return;
+
+      if (event.key.toLowerCase() === "p") togglePause();
+
+      if (event.key === "Enter" &&
+          !ui.overlay.classList.contains("hidden")) {
+        startGame();
+      }
+    });
+
+    document.addEventListener("keyup", event => {
+      keys.delete(event.key);
+    });
+
+    window.addEventListener("blur", () => {
+      keys.clear();
+      pointer.left = false;
+      pointer.right = false;
+      pointer.fire = false;
+
+      if (running) togglePause();
+    });
+
+    function bindHoldButton(id, action) {
+      const button = $(id);
+
+      const down = event => {
+        event.preventDefault();
+        pointer[action] = true;
+
+        try {
+          button.setPointerCapture(event.pointerId);
+        } catch (_) {}
+      };
+
+      const up = event => {
+        event.preventDefault();
+        pointer[action] = false;
+      };
+
+      button.addEventListener("pointerdown", down);
+      button.addEventListener("pointerup", up);
+      button.addEventListener("pointercancel", up);
+      button.addEventListener("lostpointercapture", up);
+      button.addEventListener("contextmenu", e => e.preventDefault());
+    }
+
+    bindHoldButton("leftButton", "left");
+    bindHoldButton("rightButton", "right");
+    bindHoldButton("fireButton", "fire");
+
+    resetGame();
+    draw();
+    ensureDraw();
+  })();
+  </script>
+</body>
+</html>
